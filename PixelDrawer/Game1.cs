@@ -19,14 +19,14 @@ namespace PixelDrawer
         private Matrix _screenScale;
 
         private Texture2D _screenTexture;
+        private Texture2D _materialTexture;
         private PixelDrawer _drawer;
 
         private Point _lastMousePosition;
-        private Model3D _deerModel;
-        private Vector3 _deerPosition;
-        private Vector3 _deerRotation;
-        private Vector3 _deerScale;
-        private Color[] _deerColors;
+        private Model3D _characterModel;
+        private Vector3 _characterPosition;
+        private Vector3 _characterRotation;
+        private Vector3 _characterScale = Vector3.One;
 
         public Game1()
         {
@@ -41,25 +41,18 @@ namespace PixelDrawer
             SetResolution(1280, 960);
 
             _screenTexture = new Texture2D(GraphicsDevice, _gameSize.Width, _gameSize.Height);
-            _drawer = new PixelDrawer(_screenTexture);
+            _materialTexture = Content.Load<Texture2D>("Cat_diffuse");
+            //_materialTexture = Content.Load<Texture2D>("Head_diffuse");
+            _drawer = new PixelDrawer(_screenTexture, _materialTexture);
 
-            _deerModel = Model3D.LoadModel(@"Models/Deer.obj");
-            _deerPosition = new Vector3(_screenTexture.Width / 2, _screenTexture.Height / 2, 0f);
-            _deerRotation = new Vector3(90, 180, 0);
-            _deerScale = new Vector3(0.5f);
-            _deerColors = new Color[_deerModel.Indexes.Length];
-            for (int i = 0; i < _deerColors.Length; i++)
-            {
-                _deerColors[i] = new Color()
-                {
-                    R = (byte)Random.Shared.Next(0,255),
-                    G = (byte)Random.Shared.Next(0,255),
-                    B = (byte)Random.Shared.Next(0,255),
-                    A = 255
-                };
-            }
+            //_characterModel = Model3D.LoadModel(@"Models/Cat/Cat.obj");
+            //_characterModel = Model3D.LoadModel(@"Models/Head/head.obj");
+            _characterModel = Model3D.LoadPlaneModel();
+            _characterPosition = new Vector3(_screenTexture.Width / 2, _screenTexture.Height / 2, 0f);
+            //_characterRotation = new Vector3(90, 180, 0);
+            //_characterScale = new Vector3(1000f);
 
-            DrawModel(_deerModel, _deerPosition, _deerRotation, _deerScale);
+            DrawModel(_characterModel, _characterPosition, _characterRotation, _characterScale);
 
             base.Initialize();
         }
@@ -75,13 +68,17 @@ namespace PixelDrawer
                 * Matrix.CreateFromQuaternion(modelRotation)
                 * Matrix.CreateTranslation(position);
 
-            for (int i = 0; i < model.Indexes.Length; i += 3)
+            for (int i = 0; i < model.Indexes.Length; i += 6)
             {
                 var v1 = Vector3.Transform(model.Verticies[model.Indexes[i]], modelMatrix);
-                var v2 = Vector3.Transform(model.Verticies[model.Indexes[i + 1]], modelMatrix);
-                var v3 = Vector3.Transform(model.Verticies[model.Indexes[i + 2]], modelMatrix);
+                var v2 = Vector3.Transform(model.Verticies[model.Indexes[i + 2]], modelMatrix);
+                var v3 = Vector3.Transform(model.Verticies[model.Indexes[i + 4]], modelMatrix);
 
-                _drawer.FilledTriangle(v1, v2, v3, _deerColors[i / 3]);
+                var uv1 = model.UVs[model.Indexes[i + 1]];
+                var uv2 = model.UVs[model.Indexes[i + 3]];
+                var uv3 = model.UVs[model.Indexes[i + 5]];
+
+                _drawer.FilledTriangle(v1, v2, v3, uv1, uv2, uv3, Color.White);
             }
 
             _drawer.ApplyPixels();
@@ -120,30 +117,29 @@ namespace PixelDrawer
             var keyboarState = Keyboard.GetState();
             if (keyboarState.IsKeyDown(Keys.Up))
             {
-                _deerRotation.Z = 0;
-                _deerRotation.Y -= speed.Y;
-                DrawModel(_deerModel, _deerPosition, _deerRotation, _deerScale);
+                _characterRotation.Y -= speed.Y;
+                DrawModel(_characterModel, _characterPosition, _characterRotation, _characterScale);
             }
             else if (keyboarState.IsKeyDown(Keys.Down))
             {
-                _deerRotation.Y += speed.Y;
-                DrawModel(_deerModel, _deerPosition, _deerRotation, _deerScale);
+                _characterRotation.Y += speed.Y;
+                DrawModel(_characterModel, _characterPosition, _characterRotation, _characterScale);
             }
             else if (keyboarState.IsKeyDown(Keys.Left))
             {
-                _deerRotation.X -= speed.X;
-                DrawModel(_deerModel, _deerPosition, _deerRotation, _deerScale);
+                _characterRotation.X -= speed.X;
+                DrawModel(_characterModel, _characterPosition, _characterRotation, _characterScale);
             }
             else if (keyboarState.IsKeyDown(Keys.Right))
             {
-                _deerRotation.X += speed.X;
-                DrawModel(_deerModel, _deerPosition, _deerRotation, _deerScale);
+                _characterRotation.X += speed.X;
+                DrawModel(_characterModel, _characterPosition, _characterRotation, _characterScale);
             }
-            else
-            {
-                _deerRotation += new Vector3(1, 1, 1);
-                DrawModel(_deerModel, _deerPosition, _deerRotation, _deerScale);
-            }
+            //else
+            //{
+            //    _characterRotation += new Vector3(1, 1, 1);
+            //    DrawModel(_characterModel, _characterPosition, _characterRotation, _characterScale);
+            //}
 
 
             //var mousePosition = Mouse.GetState().Position;

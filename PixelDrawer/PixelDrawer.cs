@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
+using System.Diagnostics;
 
 namespace PixelDrawer
 {
@@ -9,18 +10,26 @@ namespace PixelDrawer
         public float ZBufferThreshold { get; set; } = 1.5f;
 
         private readonly Texture2D _texture2d;
+        private readonly Texture2D _materialTexture2d;
         private Color[] _pixelsData;
+        private Color[] _materialData;
         private float[] _zBuffer;
 
-        public PixelDrawer(Texture2D texture)
+        public PixelDrawer(Texture2D texture, Texture2D materialTexture2d)
         {
             _texture2d = texture;
+            _materialTexture2d = materialTexture2d;
+
+            _materialData = new Color[_materialTexture2d.Width * _materialTexture2d.Height];
+            _materialTexture2d.GetData(_materialData);
+
             _pixelsData = new Color[_texture2d.Width * _texture2d.Height];
             _zBuffer = new float[_texture2d.Width * _texture2d.Height];
         }
 
-        public void FilledTriangle(Vector3 point0, Vector3 point1, Vector3 point2, 
-            Color color, CullingMode cullingMode = CullingMode.Back)
+        public void FilledTriangle(Vector3 point0, Vector3 point1, Vector3 point2,
+            in Vector2 uv0, in Vector2 uv1, in Vector2 uv2,
+            in Color color, CullingMode cullingMode = CullingMode.Back)
         {
             // Culling
             if (cullingMode != CullingMode.None)
@@ -46,41 +55,60 @@ namespace PixelDrawer
             var step01 = (point1 - point0) * 1f / topSegmentHeight;
             var step12 = (point2 - point1) * 1f / bottomSegmentHeight;
 
+            var uvStep02 = (uv2 - uv0) * 1f / totalHeight;
+            var uvStep01 = (uv1 - uv0) * 1f / topSegmentHeight;
+            var uvStep12 = (uv2 - uv1) * 1f / bottomSegmentHeight;
+
             Vector3 x02 = point0, x01 = point0, x12 = point1;
+            Vector2 uv02 = uv0, uv01 = uv0, uv12 = uv1;
             for (var y = point0.Y; y <= point2.Y; y++)
             {
                 var start = x02;
+                var startUv = uv02;
                 if (y <= point1.Y)
                 {
                     var end = x01;
                     if (start.X > end.X) (start, end) = (end, start);
-
                     var z = start.Z;
                     var stepZ = (end.Z - start.Z) / (end.X - start.X);
 
+                    var endUv = uv01;
+                    if (startUv.X > endUv.X) (startUv, endUv) = (endUv, startUv);
+                    var u = startUv.X;
+                    var stepU = (endUv.X - startUv.X) / (end.X - start.X);
+
                     for (int x = (int)start.X; x <= end.X; x++)
                     {
-                        SetPixel(x, y, z, color);
+                        SetPixel(x, y, z, u, uv01.Y, color);
                         z += stepZ;
+                        u += stepU;
                     }
                     x01 += step01;
+                    uv01 += uvStep01;
                 }
                 else
                 {
                     var end = x12;
                     if (start.X > end.X) (start, end) = (end, start);
-
                     var z = start.Z;
                     var stepZ = (end.Z - start.Z) / (end.X - start.X);
 
+                    var endUv = uv12;
+                    if (startUv.X > endUv.X) (startUv, endUv) = (endUv, startUv);
+                    var u = startUv.X;
+                    var stepU = (endUv.X - startUv.X) / (end.X - start.X);
+
                     for (int x = (int)start.X; x <= end.X; x++)
                     {
-                        SetPixel(x, y, z, color);
+                        SetPixel(x, y, z, u, uv12.Y, color);
                         z += stepZ;
+                        u += stepU;
                     }
                     x12 += step12;
+                    uv12 += uvStep12;
                 }
                 x02 += step02;
+                uv02 += uvStep02;
             }
         }
 
@@ -111,7 +139,7 @@ namespace PixelDrawer
 
             for (float i = 0; i <= 1f; i += step)
             {
-                SetPixel(x0, y0, 0, color);
+                SetPixel(x0, y0, 0, 0, 0, color);
 
                 x0 += stepX;
                 y0 += stepY;
@@ -135,7 +163,8 @@ namespace PixelDrawer
             _texture2d.SetData(_pixelsData);
         }
 
-        private void SetPixel(float x, float y, float z, in Color color)
+        private void SetPixel(float x, float y, float z,
+            float u, float v, in Color color)
         {
             if (x >= 0 && x < _texture2d.Width
                 && y >= 0 && y < _texture2d.Height)
@@ -143,10 +172,20 @@ namespace PixelDrawer
                 var index = (int)y * _texture2d.Width + (int)x;
                 if (_zBuffer[index] - z < ZBufferThreshold)
                 {
-                    _pixelsData[index] = color;
+                    _pixelsData[index] = SamplePixel(u, v);
                     _zBuffer[index] = z;
                 }
             }
+        }
+
+        private Color SamplePixel(float u, float v)
+        {
+            var x = u * (_materialTexture2d.Width - 1);
+            var y = (1f - v) * (_materialTexture2d.Height - 1);
+
+            var index = (int)y * _materialTexture2d.Width + (int)x;
+
+            return _materialData[index];
         }
     }
 
