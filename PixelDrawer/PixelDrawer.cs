@@ -28,7 +28,7 @@ namespace PixelDrawer
         }
 
         public void FilledTriangle(Vector3 point0, Vector3 point1, Vector3 point2,
-            in Vector2 uv0, in Vector2 uv1, in Vector2 uv2,
+            Vector2 uv0, Vector2 uv1, Vector2 uv2,
             in Color color, CullingMode cullingMode = CullingMode.Back)
         {
             // Culling
@@ -43,9 +43,21 @@ namespace PixelDrawer
                     return;
             }
 
-            if (point0.Y > point1.Y) (point0, point1) = (point1, point0);
-            if (point1.Y > point2.Y) (point1, point2) = (point2, point1);
-            if (point0.Y > point1.Y) (point0, point1) = (point1, point0);
+            if (point0.Y > point1.Y)
+            {
+                (point0, point1) = (point1, point0);
+                (uv0, uv1) = (uv1, uv0);
+            }
+            if (point1.Y > point2.Y)
+            {
+                (point1, point2) = (point2, point1);
+                (uv1, uv2) = (uv2, uv1);
+            }
+            if (point0.Y > point1.Y)
+            {
+                (point0, point1) = (point1, point0);
+                (uv0, uv1) = (uv1, uv0);
+            }
 
             var totalHeight = point2.Y - point0.Y;
             var topSegmentHeight = point1.Y - point0.Y;
@@ -55,16 +67,10 @@ namespace PixelDrawer
             var step01 = (point1 - point0) * 1f / topSegmentHeight;
             var step12 = (point2 - point1) * 1f / bottomSegmentHeight;
 
-            var uvStep02 = (uv2 - uv0) * 1f / totalHeight;
-            var uvStep01 = (uv1 - uv0) * 1f / topSegmentHeight;
-            var uvStep12 = (uv2 - uv1) * 1f / bottomSegmentHeight;
-
             Vector3 x02 = point0, x01 = point0, x12 = point1;
-            Vector2 uv02 = uv0, uv01 = uv0, uv12 = uv1;
             for (var y = point0.Y; y <= point2.Y; y++)
             {
                 var start = x02;
-                var startUv = uv02;
                 if (y <= point1.Y)
                 {
                     var end = x01;
@@ -72,19 +78,14 @@ namespace PixelDrawer
                     var z = start.Z;
                     var stepZ = (end.Z - start.Z) / (end.X - start.X);
 
-                    var endUv = uv01;
-                    if (startUv.X > endUv.X) (startUv, endUv) = (endUv, startUv);
-                    var u = startUv.X;
-                    var stepU = (endUv.X - startUv.X) / (end.X - start.X);
-
                     for (int x = (int)start.X; x <= end.X; x++)
                     {
-                        SetPixel(x, y, z, u, uv01.Y, color);
+                        var uv = RemapUv(x, y, point0, point1, point2,
+                            uv0, uv1, uv2);
+                        SetPixel(x, y, z, uv.X, uv.Y, color);
                         z += stepZ;
-                        u += stepU;
                     }
                     x01 += step01;
-                    uv01 += uvStep01;
                 }
                 else
                 {
@@ -93,22 +94,16 @@ namespace PixelDrawer
                     var z = start.Z;
                     var stepZ = (end.Z - start.Z) / (end.X - start.X);
 
-                    var endUv = uv12;
-                    if (startUv.X > endUv.X) (startUv, endUv) = (endUv, startUv);
-                    var u = startUv.X;
-                    var stepU = (endUv.X - startUv.X) / (end.X - start.X);
-
                     for (int x = (int)start.X; x <= end.X; x++)
                     {
-                        SetPixel(x, y, z, u, uv12.Y, color);
+                        var uv = RemapUv(x, y, point0, point1, point2,
+                            uv0, uv1, uv2);
+                        SetPixel(x, y, z, uv.X, uv.Y, color);
                         z += stepZ;
-                        u += stepU;
                     }
                     x12 += step12;
-                    uv12 += uvStep12;
                 }
                 x02 += step02;
-                uv02 += uvStep02;
             }
         }
 
@@ -139,7 +134,7 @@ namespace PixelDrawer
 
             for (float i = 0; i <= 1f; i += step)
             {
-                SetPixel(x0, y0, 0, 0, 0, color);
+                SetPixel(x0, y0, color);
 
                 x0 += stepX;
                 y0 += stepY;
@@ -163,6 +158,32 @@ namespace PixelDrawer
             _texture2d.SetData(_pixelsData);
         }
 
+        private Vector2 RemapUv(float x, float y, Vector3 point0, Vector3 point1, Vector3 point2,
+            Vector2 uv0, Vector2 uv1, Vector2 uv2)
+        {
+            var pixelPosition = new Vector3(x, y, 0);
+
+            var s = TriangleSquare(point0, point1, point2);
+            var a = TriangleSquare(pixelPosition, point1, point2);
+            var b = TriangleSquare(point0, pixelPosition, point2);
+            var c = TriangleSquare(point0, point1, pixelPosition);
+
+            var alpha = a / s;
+            var beta = b / s;
+            var gamma = c / s;
+
+            return new Vector2()
+            {
+                X = alpha * uv0.X + beta * uv1.X + gamma * uv2.X,
+                Y = alpha * uv0.Y + beta * uv1.Y + gamma * uv2.Y
+            };
+        }
+
+        private float TriangleSquare(Vector3 a, Vector3 b, Vector3 c)
+        {
+            return Math.Abs((b.X - a.X) * (c.Y - a.Y) - (c.X - a.X) * (b.Y - a.Y)) * 0.5f;
+        }
+
         private void SetPixel(float x, float y, float z,
             float u, float v, in Color color)
         {
@@ -177,6 +198,15 @@ namespace PixelDrawer
                 }
             }
         }
+        private void SetPixel(float x, float y, in Color color)
+        {
+            if (x >= 0 && x < _texture2d.Width
+                && y >= 0 && y < _texture2d.Height)
+            {
+                var index = (int)y * _texture2d.Width + (int)x;
+                _pixelsData[index] = color;
+            }
+        }
 
         private Color SamplePixel(float u, float v)
         {
@@ -184,6 +214,8 @@ namespace PixelDrawer
             var y = (1f - v) * (_materialTexture2d.Height - 1);
 
             var index = (int)y * _materialTexture2d.Width + (int)x;
+            if (index < 0 || index >= _materialData.Length)
+                return Color.Black;
 
             return _materialData[index];
         }

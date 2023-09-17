@@ -45,12 +45,12 @@ namespace PixelDrawer
             //_materialTexture = Content.Load<Texture2D>("Head_diffuse");
             _drawer = new PixelDrawer(_screenTexture, _materialTexture);
 
-            //_characterModel = Model3D.LoadModel(@"Models/Cat/Cat.obj");
+            _characterModel = Model3D.LoadModel(@"Models/Cat/Cat.obj");
             //_characterModel = Model3D.LoadModel(@"Models/Head/head.obj");
-            _characterModel = Model3D.LoadPlaneModel();
+            //_characterModel = Model3D.LoadPlaneModel();
             _characterPosition = new Vector3(_screenTexture.Width / 2, _screenTexture.Height / 2, 0f);
-            //_characterRotation = new Vector3(90, 180, 0);
-            //_characterScale = new Vector3(1000f);
+            _characterRotation = new Vector3(90, 180, 0);
+            _characterScale = new Vector3(5f);
 
             DrawModel(_characterModel, _characterPosition, _characterRotation, _characterScale);
 
@@ -79,6 +79,7 @@ namespace PixelDrawer
                 var uv3 = model.UVs[model.Indexes[i + 5]];
 
                 _drawer.FilledTriangle(v1, v2, v3, uv1, uv2, uv3, Color.White);
+                //_drawer.Triangle(v1, v2, v3, Color.White);
             }
 
             _drawer.ApplyPixels();

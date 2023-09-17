@@ -15,8 +15,8 @@ namespace PixelDrawer
             var verticies = new Vector3[]
             {
                 new Vector3(-100, -100, -100),
-                new Vector3(100, -100, 0),
-                new Vector3(100, 100, 0),
+                new Vector3(200, -100, 0),
+                new Vector3(100, 250, 0),
                 new Vector3(-100, 100, 0),
             };
 
