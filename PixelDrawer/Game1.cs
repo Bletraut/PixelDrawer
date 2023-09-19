@@ -302,7 +302,7 @@ namespace PixelDrawer
             _spriteBatch.DrawString(_mainFont, screenInfo, _textInfoMargin, Color.White);
 
             var zClearValue = float.IsInfinity(_drawer.ZBufferClearValue) ? "-Infinity" : _drawer.ZBufferClearValue.ToString();
-            var modelInfo = $"{_currentModelType}, R:{_characterRotation} S:{_characterScale} Z:{zClearValue}";
+            var modelInfo = $"{_currentModelType} [V:{_characterModel.Verticies.Length} T:{_characterModel.Indexes.Length / 6}], R:{_characterRotation} S:{_characterScale} Z:{zClearValue}";
             _spriteBatch.DrawString(_mainFont, modelInfo, new Vector2(_textInfoMargin.X, _defaultTextHeight + _textInfoMargin.Y * 2), Color.White);
 
             var controlsInfo = $"ARROWS=Rotate, ZX=+/-Scale, CV=+/-ZBufferClearValue";

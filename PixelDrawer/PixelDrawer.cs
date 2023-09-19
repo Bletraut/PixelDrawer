@@ -36,28 +36,6 @@ namespace PixelDrawer
             _materialTexture2d.GetData(_materialData);
         }
 
-        public void FilledTriangleNew(Vector3 point0, Vector3 point1, Vector3 point2, 
-            in Color color)
-        {
-            if (point0.Y > point1.Y) (point0, point1) = (point1, point0);
-            if (point1.Y > point2.Y) (point1, point2) = (point2, point1);
-            if (point0.Y > point1.Y) (point0, point1) = (point1, point0);
-
-            var totalHeight = point2.Y - point0.Y;
-            var topSegmentHeight = point1.Y - point0.Y;
-            var bottomSegmentHeight = point2.Y - point1.Y;
-
-            for (var y = point0.Y; y <= point1.Y; y++)
-            {
-                float alpha = (float)(y - point0.Y) / totalHeight;
-                float beta = (float)(y - point0.Y) / topSegmentHeight; // be careful with divisions by zero
-                var a = point0 + (point2 - point0) * alpha;
-                var b = point0 + (point1 - point0) * beta;
-                SetPixel(a.X, y, color);
-                SetPixel(b.X, y, color);
-            }
-        }
-
         public void FilledTriangle(Vector3 point0, Vector3 point1, Vector3 point2,
             Vector2 uv0, Vector2 uv1, Vector2 uv2,
             in Color color, CullingMode cullingMode = CullingMode.Back)
