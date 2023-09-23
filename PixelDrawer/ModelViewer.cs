@@ -2,10 +2,11 @@
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System;
+using System.Threading.Tasks;
 
 namespace PixelDrawer
 {
-    public class Game1 : Game
+    public class ModelViewer : Game
     {
         private enum ModelType
         {
@@ -19,6 +20,7 @@ namespace PixelDrawer
         private SpriteBatch _spriteBatch;
 
         private readonly Rectangle _gameSizeDefault = new(0, 0, 320, 240);
+        private readonly Rectangle _gameSizeVeryHigh = new(0, 0, 320 * 3, 240 * 3);
         private readonly Rectangle _gameSizeHigh = new(0, 0, 320 * 2, 240 * 2);
         private readonly Rectangle _gameSizeLow = new(0, 0, 320 / 2, 240 / 2);
 
@@ -49,19 +51,24 @@ namespace PixelDrawer
         private Rectangle _currentGameSize;
         private KeyboardState _lastKeyboardState;
 
+        private int _renderTasksCount = 8;
+        private Task[] _renderTasks;
+
         private float _defaultTextHeight;
 
-        public Game1()
+        public ModelViewer()
         {
             _graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
             IsMouseVisible = true;
+            IsFixedTimeStep = false;
         }
 
         protected override void Initialize()
         {
             // TODO: Add your initialization logic here
             _drawer = new PixelDrawer();
+            _renderTasks = new Task[_renderTasksCount];
 
             ChangeGameSize();
             ChangeModel();
@@ -76,6 +83,8 @@ namespace PixelDrawer
             if (_currentGameSize == _gameSizeDefault)
                 _currentGameSize = _gameSizeHigh;
             else if (_currentGameSize == _gameSizeHigh)
+                _currentGameSize = _gameSizeVeryHigh;
+            else if (_currentGameSize == _gameSizeVeryHigh)
                 _currentGameSize = _gameSizeLow;
             else
                 _currentGameSize = _gameSizeDefault;
@@ -168,19 +177,33 @@ namespace PixelDrawer
             {
                 _characterModifiedVerticies[i] = Vector3.Transform(model.Verticies[i], modelMatrix);
             }
-            for (int i = 0; i < model.Indexes.Length; i += 6)
+
+            for (int t = 0; t < _renderTasksCount; t++)
             {
-                var v1 = _characterModifiedVerticies[model.Indexes[i]];
-                var v2 = _characterModifiedVerticies[model.Indexes[i + 2]];
-                var v3 = _characterModifiedVerticies[model.Indexes[i + 4]];
+                var taskId = t;
+                _renderTasks[t] = new Task(() =>
+                {
+                    for (int i = 0; i < model.Indexes.Length; i += 6)
+                    {
+                        if (i % _renderTasksCount != taskId)
+                            continue;
 
-                var uv1 = model.UVs[model.Indexes[i + 1]];
-                var uv2 = model.UVs[model.Indexes[i + 3]];
-                var uv3 = model.UVs[model.Indexes[i + 5]];
+                        var v1 = _characterModifiedVerticies[model.Indexes[i]];
+                        var v2 = _characterModifiedVerticies[model.Indexes[i + 2]];
+                        var v3 = _characterModifiedVerticies[model.Indexes[i + 4]];
 
-                _drawer.FilledTriangle(v1, v2, v3, uv1, uv2, uv3, Color.White);
-                //_drawer.Triangle(v1, v2, v3, Color.White);
+                        var uv1 = model.UVs[model.Indexes[i + 1]];
+                        var uv2 = model.UVs[model.Indexes[i + 3]];
+                        var uv3 = model.UVs[model.Indexes[i + 5]];
+
+                        _drawer.FilledTriangle(v1, v2, v3, uv1, uv2, uv3, Color.White);
+                        //_drawer.Triangle(v1, v2, v3, Color.White);
+                    }
+                });
+                _renderTasks[t].Start();
             }
+
+            Task.WaitAll(_renderTasks);
 
             _drawer.ApplyPixels();
         }

@@ -136,6 +136,8 @@ namespace PixelDrawer
             Line(x2, y2, x0, y0, color);
         }
 
+        public void Line(Vector3 from, Vector3 to, in Color color)
+            => Line(from.X, from.Y, to.X, to.Y, color);
         public void Line(Vector2 from, Vector2 to, in Color color)
             => Line(from.X, from.Y, to.X, to.Y, color);
         public void Line(float x0, float y0, float x1, float y1, in Color color)

@@ -1,3 +1,3 @@
-﻿
-using var game = new PixelDrawer.Game1();
+﻿//using var game = new PixelDrawer.ModelViewer();
+using var game = new PixelDrawer.ClothGame();
 game.Run();
