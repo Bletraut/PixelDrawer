@@ -211,10 +211,11 @@ namespace PixelDrawer
                 || y < 0 || (int)y >= _texture2d.Height)
                 return;
 
+            z = 255 / z;
             var index = (int)y * _texture2d.Width + (int)x;
             if (_zBuffer[index] < ZBufferThreshold + z)
             {
-                _pixelsData[index] = SamplePixel(u, v);
+                _pixelsData[index] = new Color(SamplePixel(u, v).ToVector4() * color.ToVector4());
                 _zBuffer[index] = z;
             }
         }
