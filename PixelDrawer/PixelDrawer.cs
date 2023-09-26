@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace PixelDrawer
@@ -17,12 +18,16 @@ namespace PixelDrawer
         private Color[] _materialData;
         private float[] _zBuffer;
 
+        private Dictionary<Texture2D, Color[]> _materialDataCache;
+
         public void SetScreenTexture(Texture2D texture)
         {
             _texture2d = texture;
 
             _pixelsData = new Color[_texture2d.Width * _texture2d.Height];
             _zBuffer = new float[_texture2d.Width * _texture2d.Height];
+
+            _materialDataCache = new Dictionary<Texture2D, Color[]>();
         }
 
         public void SetMaterialTexture(Texture2D texture)
@@ -32,8 +37,13 @@ namespace PixelDrawer
 
             _materialTexture2d = texture;
 
-            _materialData = new Color[_materialTexture2d.Width * _materialTexture2d.Height];
-            _materialTexture2d.GetData(_materialData);
+            if (!_materialDataCache.TryGetValue(texture, out _materialData))
+            {
+                _materialData = new Color[_materialTexture2d.Width * _materialTexture2d.Height];
+                _materialTexture2d.GetData(_materialData);
+
+                _materialDataCache.Add(texture, _materialData);
+            }
         }
 
         public void FilledTriangle(Vector3 point0, Vector3 point1, Vector3 point2,
