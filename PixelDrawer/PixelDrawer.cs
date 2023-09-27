@@ -95,7 +95,7 @@ namespace PixelDrawer
             var line02 = point2 - point0;
             var line12 = point2 - point1;
 
-            var stepY = point2.Y - point0.Y <= 1f ? 0.5f : 1f;
+            var stepY = point2.Y - point0.Y <= 1f ? 0.25f : 1f;
 
             for (var y = point0.Y; y <= point2.Y; y += stepY)
             {

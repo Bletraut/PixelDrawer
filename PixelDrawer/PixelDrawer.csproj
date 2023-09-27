@@ -16,6 +16,7 @@
     <None Remove="Models\Cat\Cat.obj" />
     <None Remove="Models\Cloth\LowPolySphere.obj" />
     <None Remove="Models\Deer.obj" />
+    <None Remove="Models\Head\Grid.obj" />
     <None Remove="Models\Head\head.obj" />
   </ItemGroup>
   <ItemGroup>
@@ -34,6 +35,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Models\Deer.obj">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Models\Head\Grid.obj">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Models\Head\head.obj">

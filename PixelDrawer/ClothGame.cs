@@ -47,6 +47,7 @@ namespace PixelDrawer
         private List<VerletBody> _bullets;
         private int _bulletsCount = 10;
         private Model3D _bulletModel;
+        private Model3D _simpleModel;
 
         private Texture2D _fabricTexture;
         private Texture2D _bulletTexture;
@@ -83,6 +84,8 @@ namespace PixelDrawer
             _bullets = new List<VerletBody>(_bulletsCount);
             _bulletModel = Model3D.LoadModel(@"Models/Cloth/LowPolySphere.obj");
 
+            _simpleModel = Model3D.LoadModel(@"Models/Head/Grid.obj");
+
             base.Initialize();
         }
 
@@ -95,12 +98,22 @@ namespace PixelDrawer
             var keyboardState = Keyboard.GetState();
             if (keyboardState.IsKeyDown(Keys.A))
             {
-                _viewRotation.X -= 1;
+                _viewRotation.X -= 1f;
                 _isViewMatrixDirty = true;
             }
             else if (keyboardState.IsKeyDown(Keys.D))
             {
-                _viewRotation.X += 1;
+                _viewRotation.X += 1f;
+                _isViewMatrixDirty = true;
+            }
+            if (keyboardState.IsKeyDown(Keys.W))
+            {
+                _viewRotation.Y -= 3;
+                _isViewMatrixDirty = true;
+            }
+            else if (keyboardState.IsKeyDown(Keys.S))
+            {
+                _viewRotation.Y += 3;
                 _isViewMatrixDirty = true;
             }
 
@@ -129,6 +142,7 @@ namespace PixelDrawer
             _cloth.Draw(_drawer, ViewProjectionMatrix);
             _drawer.SetMaterialTexture(_bulletTexture);
             DrawBullets();
+            //DrawSimpleModel();
 
             _drawer.ApplyPixels();
 
@@ -137,6 +151,42 @@ namespace PixelDrawer
             _spriteBatch.End();
 
             base.Draw(gameTime);
+        }
+
+        private void DrawSimpleModel()
+        {
+            var modelMatrix = Matrix.CreateRotationX(MathHelper.Pi)
+                * Matrix.CreateScale(700) 
+                * ViewProjectionMatrix;
+
+            var positions = new Vector3[_simpleModel.Verticies.Length];
+            for (int i = 0; i < positions.Length; i++)
+            {
+                var v = Vector4.Transform(new Vector4(_simpleModel.Verticies[i], 1f), modelMatrix);
+                positions[i] = new Vector3(v.X, v.Y, v.Z) / v.W;
+                positions[i].Z = v.Z;
+                positions[i] *= _gameHalfSize;
+                positions[i] += _gameHalfSize;
+            }
+
+            for (int i = 0; i < _simpleModel.Indexes.Length; i += 6)
+            {
+                var v1 = positions[_simpleModel.Indexes[i]];
+                var v2 = positions[_simpleModel.Indexes[i + 2]];
+                var v3 = positions[_simpleModel.Indexes[i + 4]];
+
+                var uv1 = _simpleModel.UVs[_simpleModel.Indexes[i + 1]];
+                var uv2 = _simpleModel.UVs[_simpleModel.Indexes[i + 3]];
+                var uv3 = _simpleModel.UVs[_simpleModel.Indexes[i + 5]];
+
+                var shadowColor = Color.White;
+                var normal = Vector3.Cross(v2 - v1, v3 - v1);
+                normal.Normalize();
+                var lightness = shadowColor * Math.Clamp(Vector3.Dot(normal, new Vector3(0f, 1f, 0)), 0.35f, 1f);
+                lightness.A = 255;
+
+                _drawer.FilledTriangle(v1, v2, v3, uv1, uv2, uv3, lightness);
+            }
         }
 
         private void DrawBullets()
@@ -241,10 +291,11 @@ namespace PixelDrawer
                 var direction = new Vector3()
                 {
                     X = MathF.Cos(MathHelper.ToRadians(_viewRotation.X)),
-                    Y = 0f,
+                    Y = 0,
                     Z = MathF.Sin(MathHelper.ToRadians(_viewRotation.X)),
                 };
                 _viewPosition = _viewDistance * direction;
+                _viewPosition.Y = _viewRotation.Y;
 
                 _viewMatrix = Matrix.CreateLookAt(_viewPosition, Vector3.Zero, Vector3.Up);
 
